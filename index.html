@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="ky">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f6b55">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Студенттердин контракттары</title>
+<style>
+/* Раскладка: узкая колонка для телефона. Сверху сводка и фильтры, ниже список студентов с цветной полосой статуса. */
+:root{
+  --bg:#f4f6f5; --surface:#ffffff; --fg:#17211d; --muted:#66746e; --line:#dfe5e2; --accent:#0f6b55; --accent-fg:#ffffff; --field:#f4f6f5;
+  --paid:#1f8f4e; --paid-bg:#e2f4e8; --paid-fg:#14693a;
+  --over:#6f9f12; --over-bg:#eaf3cf; --over-fg:#4b6d00;
+  --half:#d9a000; --half-bg:#fdf1c9; --half-fg:#7a5a00;
+  --none:#d43d3d; --none-bg:#fbe3e3; --none-fg:#a52424;
+  --shadow:0 1px 2px rgba(20,40,32,.06),0 6px 18px rgba(20,40,32,.05);
+  color-scheme:light;
+  --font-body:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --font-display:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1512; --surface:#18211d; --fg:#e8efec; --muted:#93a39c; --line:#27332e; --accent:#4cc9a0; --accent-fg:#06231a; --field:#101814;
+  --paid:#3dc27a; --paid-bg:#15351f; --paid-fg:#7ee3a5;
+  --over:#a6d44a; --over-bg:#26330f; --over-fg:#c4e87a;
+  --half:#f0b92b; --half-bg:#3a2f0b; --half-fg:#f4cf6a;
+  --none:#ef6a6a; --none-bg:#3b1717; --none-fg:#f59a9a;
+  --shadow:none; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1512; --surface:#18211d; --fg:#e8efec; --muted:#93a39c; --line:#27332e; --accent:#4cc9a0; --accent-fg:#06231a; --field:#101814;
+  --paid:#3dc27a; --paid-bg:#15351f; --paid-fg:#7ee3a5;
+  --over:#a6d44a; --over-bg:#26330f; --over-fg:#c4e87a;
+  --half:#f0b92b; --half-bg:#3a2f0b; --half-fg:#f4cf6a;
+  --none:#ef6a6a; --none-bg:#3b1717; --none-fg:#f59a9a;
+  --shadow:none; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:16px;line-height:1.4;
+  padding-block:env(safe-area-inset-top,0px) 110px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.wrap{max-width:720px;margin:0 auto}
+
+header{background:var(--bg);padding:14px 0 10px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+h1{font-family:var(--font-display);font-weight:800;font-size:22px;margin:0;letter-spacing:-.01em;text-wrap:balance}
+.sub{color:var(--muted);font-size:13px;margin-top:2px}
+.btn{border:0;border-radius:12px;padding:12px 16px;font-weight:600;background:var(--accent);color:var(--accent-fg);white-space:nowrap}
+.btn.ghost{background:var(--field);color:var(--fg);border:1px solid var(--line)}
+.btn.danger{background:var(--none-bg);color:var(--none-fg)}
+
+.bar{display:flex;height:10px;border-radius:99px;overflow:hidden;background:var(--line);margin:14px 0 12px}
+.bar i{display:block;height:100%;transition:width .25s}
+.bar .p{background:var(--paid)}.bar .o{background:var(--over)}.bar .h{background:var(--half)}.bar .n{background:var(--none)}
+.stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.stat{border:2px solid transparent;border-radius:14px;padding:9px 12px 8px;text-align:left;background:var(--surface);box-shadow:var(--shadow)}
+.stat b{display:block;font-family:var(--font-display);font-size:24px;line-height:1;font-variant-numeric:tabular-nums}
+.stat span{display:block;font-size:12.5px;margin-top:5px;font-weight:500}
+.stat.p{background:var(--paid-bg);color:var(--paid-fg)}
+.stat.o{background:var(--over-bg);color:var(--over-fg)}
+.stat.h{background:var(--half-bg);color:var(--half-fg)}
+.stat.n{background:var(--none-bg);color:var(--none-fg)}
+.stat[aria-pressed="true"]{border-color:currentColor}
+
+.search{display:block;width:100%;margin-top:12px;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:var(--surface)}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:10px 0 4px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:7px 14px;font-weight:500;font-size:14px}
+.chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+
+main{padding-top:6px}
+.grp{font-family:var(--font-display);font-weight:700;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:18px 2px 8px;display:flex;justify-content:space-between}
+.list{display:flex;flex-direction:column;gap:8px}
+.row{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--surface);border:0;border-left:7px solid var(--line);border-radius:14px;padding:12px 12px 12px 14px;box-shadow:var(--shadow)}
+.row.paid{border-left-color:var(--paid)}.row.over{border-left-color:var(--over)}.row.half{border-left-color:var(--half)}.row.none{border-left-color:var(--none)}
+.row .who{flex:1;min-width:0}
+.row .nm{font-weight:600;overflow-wrap:anywhere}
+.row .gr{color:var(--muted);font-size:13px;margin-top:1px}
+.pill{flex:none;font-size:12.5px;font-weight:600;padding:5px 10px;border-radius:99px}
+.pill.paid{background:var(--paid-bg);color:var(--paid-fg)}
+.pill.over{background:var(--over-bg);color:var(--over-fg)}
+.pill.half{background:var(--half-bg);color:var(--half-fg)}
+.pill.none{background:var(--none-bg);color:var(--none-fg)}
+.money{display:flex;flex-wrap:wrap;gap:2px 12px;margin-top:6px;font-size:13.5px;font-variant-numeric:tabular-nums}
+.money b{font-weight:600}.money .left b{color:var(--none-fg)}.money .done b{color:var(--paid-fg)}
+.mini{height:5px;border-radius:99px;background:var(--line);margin-top:7px;overflow:hidden}
+.mini i{display:block;height:100%;border-radius:99px}
+.mini.paid i{background:var(--paid)}.mini.over i{background:var(--over)}.mini.half i{background:var(--half)}.mini.none i{background:var(--none)}
+.total{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-top:12px;background:var(--surface);border-radius:14px;padding:10px 12px;font-size:13.5px;box-shadow:var(--shadow);font-variant-numeric:tabular-nums}
+.total b{font-family:var(--font-display);font-size:16px}
+.linkbtn{border:0;background:none;color:var(--accent);font-weight:600;padding:2px 0;font-size:13px;text-decoration:underline;text-underline-offset:3px}
+.quick{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.quick .chip{padding:6px 12px}
+.calc{margin-top:12px;border-radius:14px;padding:12px 14px;font-size:14px;font-variant-numeric:tabular-nums}
+.calc.paid{background:var(--paid-bg);color:var(--paid-fg)}.calc.over{background:var(--over-bg);color:var(--over-fg)}.calc.half{background:var(--half-bg);color:var(--half-fg)}.calc.none{background:var(--none-bg);color:var(--none-fg)}
+.calc b{font-size:15px}
+.empty{text-align:center;color:var(--muted);padding:44px 12px}
+.empty b{display:block;color:var(--fg);font-family:var(--font-display);font-size:19px;margin-bottom:6px}
+
+.fab{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:20;border-radius:16px;padding:15px 20px;box-shadow:0 8px 22px rgba(0,0,0,.28)}
+
+.scrim{position:fixed;inset:0;z-index:40;background:rgba(8,14,11,.55);display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--surface);width:100%;max-width:560px;border-radius:22px 22px 0 0;padding:20px max(16px,env(safe-area-inset-left,0px)) calc(20px + env(safe-area-inset-bottom,0px));max-height:92%;overflow-y:auto}
+.sheet h2{font-family:var(--font-display);font-size:20px;margin:0 0 4px}
+label{display:block;font-size:13px;font-weight:600;color:var(--muted);margin:14px 0 6px}
+.sheet input{width:100%;padding:13px 14px;border-radius:12px;border:1px solid var(--line);background:var(--field)}
+.seg{display:grid;gap:8px}
+.opt{display:flex;align-items:center;gap:12px;border:2px solid var(--line);background:var(--field);border-radius:14px;padding:12px 14px;text-align:left;font-weight:600}
+.opt .dot{width:18px;height:18px;border-radius:50%;flex:none}
+.opt.paid .dot{background:var(--paid)}.opt.half .dot{background:var(--half)}.opt.none .dot{background:var(--none)}
+.opt[aria-pressed="true"].paid{border-color:var(--paid);background:var(--paid-bg);color:var(--paid-fg)}
+.opt[aria-pressed="true"].half{border-color:var(--half);background:var(--half-bg);color:var(--half-fg)}
+.opt[aria-pressed="true"].none{border-color:var(--none);background:var(--none-bg);color:var(--none-fg)}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:20px}
+.actions .wide{grid-column:1/-1}
+.err{color:var(--none-fg);font-size:13px;margin-top:8px;min-height:1em}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(86px + env(safe-area-inset-bottom,0px));z-index:60;background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:14px;max-width:90%}
+.note{font-size:12.5px;color:var(--muted);margin-top:18px;text-align:center}
+@media (prefers-reduced-motion:reduce){.bar i{transition:none}}
+
+html,body{margin:0}
+.tools{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:22px}
+.tools .btn{padding:10px 14px;font-size:14px}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="top">
+      <div>
+        <h1>Студенттердин контракттары</h1>
+        <div class="sub" id="sub">Жүктөлүүдө…</div>
+      </div>
+    </div>
+    <div class="bar" id="bar" aria-hidden="true"><i class="p"></i><i class="o"></i><i class="h"></i><i class="n"></i></div>
+    <div class="stats">
+      <button class="stat p" id="fp" aria-pressed="false"><b id="cp">0</b><span>Толук төлөгөндөр</span></button>
+      <button class="stat o" id="fo" aria-pressed="false"><b id="co">0</b><span>Жарымынан көп (60%дан ашык)</span></button>
+      <button class="stat h" id="fh" aria-pressed="false"><b id="ch">0</b><span>Жарым-жартылай төлөгөндөр</span></button>
+      <button class="stat n" id="fn" aria-pressed="false"><b id="cn">0</b><span>Төлөбөгөндөр</span></button>
+    </div>
+    <div class="total"><span>Чогулду <b id="tPaid">0</b>, жалпы <b id="tAll">0</b> сом<br>Калды <b id="tLeft">0</b> сом</span><button class="linkbtn" id="setTotal">Контракттын суммасы: <span id="tc">35 000</span> сом ✎</button></div>
+    <input class="search" id="q" type="search" placeholder="Аты-жөнү же тобу боюнча издөө" autocomplete="off">
+    <div class="chips" id="chips"></div>
+  </header>
+  <main id="list"></main>
+  <div class="tools">
+    <button class="btn ghost" id="exportJson">⬇ Көчүрмөнү сактоо</button>
+    <button class="btn ghost" id="importBtn">⬆ Көчүрмөнү жүктөө</button>
+    <button class="btn ghost" id="exportCsv">CSV таблица</button>
+    <button class="btn hidden" id="installBtn">Тиркемени орнотуу</button>
+  </div>
+  <div class="note" id="note">Маалымат ушул телефондо гана сакталат. Жумасына бир жолу көчүрмөсүн сактап коюңуз.</div>
+  <input type="file" id="importFile" accept=".json,application/json" class="hidden">
+</div>
+
+<button class="btn fab" id="add">＋ Студент кошуу</button>
+<script>
+(function(){
+  var DEFAULT_TOTAL=35000;
+  var LABEL={paid:'Толук төлөнгөн',over:'Жарымынан көп төлөнгөн',half:'Жарым-жартылай төлөнгөн',none:'Төлөнгөн эмес'};
+  var SHORT={paid:'Толугу менен',over:'Жарымынан көп',half:'Жарым-жартылай',none:'Төлөнгөн эмес'};
+  var students=[],total=DEFAULT_TOTAL,fStatus='',fGroup='',query='',store=null,editing=null,armed=false;
+  var $=function(s){return document.querySelector(s)};
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]})}
+  function toast(t){var e=document.createElement('div');e.className='toast';e.textContent=t;document.body.appendChild(e);setTimeout(function(){e.remove()},2400)}
+  function cmp(a,b){return String(a).localeCompare(String(b),'ky')}
+  function uid(){return 's'+Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
+  function fmt(n){return Math.round(n).toLocaleString('ru-RU')}
+  function num(v){var n=parseFloat(String(v).replace(/\s/g,'').replace(',','.'));return isNaN(n)||n<0?0:n}
+
+  /* Сколько оплатил студент. Старые записи (только цвет) пересчитываются в сумму. */
+  function paidOf(s){
+    if(typeof s.paid==='number')return Math.min(Math.max(s.paid,0),total);
+    if(s.status==='paid')return total;
+    if(s.status==='half')return total/2;
+    return 0;
+  }
+  /* 100% полностью; больше 60% больше половины; от 1% до 60% частично; 0 не оплачено */
+  function tier(p){
+    if(p>=total)return 'paid';
+    if(p>total*0.6)return 'over';
+    if(p>0)return 'half';
+    return 'none';
+  }
+
+  /* ---------- Хранилище: общая база страницы, а без неё память браузера ---------- */
+  function localStore(){
+    var KEY='students-v2',cb=null,scb=null;
+    function read(){try{return JSON.parse(localStorage.getItem(KEY)||'{}')}catch(e){return {}}}
+    var st=read();st.students=st.students||[];
+    function push(){try{localStorage.setItem(KEY,JSON.stringify(st))}catch(e){}cb&&cb(st.students.slice());scb&&scb(st.total)}
+    return {
+      mode:'local',
+      subscribe:function(f,g){cb=f;scb=g;f(st.students.slice());g(st.total)},
+      save:function(id,rec){var i=st.students.findIndex(function(x){return x.id===id});var o=Object.assign({id:id},rec);if(i<0)st.students.push(o);else st.students[i]=o;push();return Promise.resolve()},
+      remove:function(id){st.students=st.students.filter(function(x){return x.id!==id});push();return Promise.resolve()},
+      saveTotal:function(n){st.total=n;push();return Promise.resolve()},
+      replace:function(list,t){st.students=list;st.total=t;push()}
+    };
+  }
+  /* ---------- Список ---------- */
+  function visible(){
+    var q=query.trim().toLowerCase();
+    return students.filter(function(s){
+      if(fStatus&&tier(paidOf(s))!==fStatus)return false;
+      if(fGroup&&s.group!==fGroup)return false;
+      if(q&&(s.name||'').toLowerCase().indexOf(q)<0&&(s.group||'').toLowerCase().indexOf(q)<0)return false;
+      return true;
+    }).sort(function(a,b){return cmp(a.group||'',b.group||'')||cmp(a.name||'',b.name||'')});
+  }
+  function render(){
+    var c={paid:0,over:0,half:0,none:0},sumPaid=0,n=students.length;
+    students.forEach(function(s){var p=paidOf(s);c[tier(p)]++;sumPaid+=p});
+    var all=n*total;
+    $('#cp').textContent=c.paid;$('#co').textContent=c.over;$('#ch').textContent=c.half;$('#cn').textContent=c.none;
+    $('#sub').textContent=n?('Студенттер: '+n):'Тизме бош';
+    $('#tPaid').textContent=fmt(sumPaid);$('#tAll').textContent=fmt(all);$('#tLeft').textContent=fmt(all-sumPaid);$('#tc').textContent=fmt(total);
+    var bars=$('#bar').children;
+    ['paid','over','half','none'].forEach(function(k,i){bars[i].style.width=n?c[k]/n*100+'%':'0'});
+    [['#fp','paid'],['#fo','over'],['#fh','half'],['#fn','none']].forEach(function(x){$(x[0]).setAttribute('aria-pressed',String(fStatus===x[1]))});
+
+    var groups=[];students.forEach(function(s){if(s.group&&groups.indexOf(s.group)<0)groups.push(s.group)});groups.sort(cmp);
+    if(fGroup&&groups.indexOf(fGroup)<0)fGroup='';
+    $('#chips').innerHTML=groups.length?('<button class="chip" data-g="" aria-pressed="'+(fGroup===''?'true':'false')+'">Бардык топтор</button>'+groups.map(function(g){return '<button class="chip" data-g="'+esc(g)+'" aria-pressed="'+(fGroup===g?'true':'false')+'">'+esc(g)+'</button>'}).join('')):'';
+
+    var list=visible(),html='';
+    if(!n){
+      html='<div class="empty"><b>Биринчи студентти кошуңуз</b>«Студент кошуу» баскычын басып, аты-жөнүн, тобун жана канча сом төлөнгөнүн киргизиңиз. Контракттын суммасы: '+fmt(total)+' сом.</div>';
+    }else if(!list.length){
+      html='<div class="empty"><b>Эч нерсе табылган жок</b>Издөөнү өзгөртүңүз же чыпкаларды тазалаңыз.</div>';
+    }else{
+      var last=null,open=false,perGroup={};
+      list.forEach(function(s){var g=s.group||'Тобу жок';perGroup[g]=(perGroup[g]||0)+1});
+      list.forEach(function(s){
+        var g=s.group||'Тобу жок',p=paidOf(s),t=tier(p),pct=Math.round(p/total*100);
+        if(g!==last){if(open)html+='</div>';html+='<div class="grp"><span>'+esc(g)+'</span><span>'+perGroup[g]+'</span></div><div class="list">';open=true;last=g}
+        html+='<button class="row '+t+'" data-id="'+esc(s.id)+'"><div class="who"><div class="nm">'+esc(s.name)+'</div><div class="gr">'+esc(s.group||'Топ көрсөтүлгөн эмес')+'</div>'+
+          '<div class="money"><span class="done">Төлөдү <b>'+fmt(p)+'</b></span><span class="left">'+(t==='paid'?'Карыз жок':'Калды <b>'+fmt(total-p)+'</b>')+'</span></div>'+
+          '<div class="mini '+t+'"><i style="width:'+pct+'%"></i></div></div>'+
+          '<span class="pill '+t+'">'+(t==='paid'?'100%':pct+'%')+'<br><span style="font-weight:500">'+SHORT[t]+'</span></span></button>';
+      });
+      if(open)html+='</div>';
+    }
+    $('#list').innerHTML=html;
+  }
+
+  /* ---------- Карточка студента ---------- */
+  function calcLine(){
+    var p=Math.min(num($('#f_paid').value),total),t=tier(p),pct=Math.round(p/total*100);
+    var el=$('#calc');el.className='calc '+t;
+    el.innerHTML='<b>'+LABEL[t]+' · '+pct+'%</b><br>Төлөндү '+fmt(p)+', '+fmt(total)+' сомдун ичинен · '+(t==='paid'?'карыз жок':'калды <b>'+fmt(total-p)+'</b> сом');
+  }
+  function openSheet(id){
+    editing=id;armed=false;var s=id?students.find(function(x){return x.id===id}):null;
+    var groups=[];students.forEach(function(x){if(x.group&&groups.indexOf(x.group)<0)groups.push(x.group)});groups.sort(cmp);
+    var scrim=document.createElement('div');scrim.className='scrim';scrim.id='scrim';
+    scrim.innerHTML='<div class="sheet" role="dialog" aria-modal="true" aria-labelledby="ttl">'+
+      '<h2 id="ttl">'+(s?'Студентти өзгөртүү':'Жаңы студент')+'</h2>'+
+      '<label for="f_name">Аты-жөнү</label><input id="f_name" autocomplete="off" placeholder="Асанов Эрлан Бакытович" value="'+esc(s?s.name:'')+'">'+
+      '<label for="f_group">Тобу</label><input id="f_group" autocomplete="off" list="grplist" placeholder="Мисалы: ИС-21" value="'+esc(s?s.group:(fGroup||''))+'">'+
+      '<datalist id="grplist">'+groups.map(function(g){return '<option value="'+esc(g)+'">'}).join('')+'</datalist>'+
+      '<label for="f_paid">Төлөнгөн сумма, сом ('+fmt(total)+' ичинен)</label><input id="f_paid" type="number" inputmode="decimal" min="0" step="any" placeholder="0" value="'+(s?Math.round(paidOf(s)):'')+'">'+
+      '<div class="quick"><button type="button" class="chip" data-q="0">0</button><button type="button" class="chip" data-q="0.5">50%</button><button type="button" class="chip" data-q="0.7">70%</button><button type="button" class="chip" data-q="1">100%</button></div>'+
+      '<div class="calc none" id="calc"></div><div class="err" id="err" role="alert"></div>'+
+      '<div class="actions"><button class="btn ghost" id="cancel" type="button">Жокко чыгаруу</button><button class="btn" id="save" type="button">Сактоо</button>'+
+      (s?'<button class="btn danger wide" id="del" type="button">Студентти өчүрүү</button>':'')+'</div></div>';
+    document.body.appendChild(scrim);calcLine();
+    setTimeout(function(){var f=$('#f_name');f&&f.focus()},50);
+  }
+  function openTotalSheet(){
+    editing=null;
+    var scrim=document.createElement('div');scrim.className='scrim';scrim.id='scrim';
+    scrim.innerHTML='<div class="sheet" role="dialog" aria-modal="true" aria-labelledby="ttl"><h2 id="ttl">Контракттын суммасы</h2>'+
+      '<label for="f_total">Контракттын баасы, сом (бул 100%)</label><input id="f_total" type="number" inputmode="decimal" min="1" step="any" value="'+Math.round(total)+'">'+
+      '<div class="err" id="err" role="alert"></div><div class="actions"><button class="btn ghost" id="cancel" type="button">Жокко чыгаруу</button><button class="btn" id="saveTotal" type="button">Сактоо</button></div></div>';
+    document.body.appendChild(scrim);setTimeout(function(){$('#f_total').focus()},50);
+  }
+  function closeSheet(){var e=$('#scrim');e&&e.remove();editing=null}
+  async function save(){
+    var name=$('#f_name').value.trim(),group=$('#f_group').value.trim(),paid=Math.min(num($('#f_paid').value),total);
+    if(!name){$('#err').textContent='Студенттин аты-жөнүн жазыңыз.';$('#f_name').focus();return}
+    var btn=$('#save');btn.disabled=true;
+    try{
+      await store.save(editing||uid(),{name:name,group:group,paid:paid,updated:Date.now()});
+      closeSheet();toast('Сакталды');
+    }catch(e){btn.disabled=false;$('#err').textContent='Сактоо мүмкүн болгон жок. Кайра аракет кылыңыз.'}
+  }
+  async function saveTotal(){
+    var n=num($('#f_total').value);
+    if(n<=0){$('#err').textContent='Нөлдөн чоң сумма жазыңыз.';return}
+    try{await store.saveTotal(n);total=n;closeSheet();render();toast('Контракттын суммасы жаңыртылды')}catch(e){$('#err').textContent='Сумманы сактоо мүмкүн болгон жок.'}
+  }
+  async function del(){
+    var b=$('#del');
+    if(!armed){armed=true;b.textContent='Өчүрүү үчүн дагы бир жолу басыңыз';return}
+    try{await store.remove(editing);closeSheet();toast('Студент өчүрүлдү')}catch(e){$('#err').textContent='Өчүрүү мүмкүн болгон жок. Кайра аракет кылыңыз.'}
+    armed=false;
+  }
+
+  /* ---------- События ---------- */
+  document.addEventListener('click',function(e){
+    var t=e.target.closest('button');if(!t){if(e.target.id==='scrim')closeSheet();return}
+    if(t.id==='add')openSheet(null);
+    else if(t.id==='setTotal')openTotalSheet();
+    else if(t.id==='saveTotal')saveTotal();
+    else if(t.classList.contains('row'))openSheet(t.getAttribute('data-id'));
+    else if(t.id==='cancel')closeSheet();
+    else if(t.id==='save')save();
+    else if(t.id==='del')del();
+    else if(t.hasAttribute('data-q')){$('#f_paid').value=Math.round(total*parseFloat(t.getAttribute('data-q')));calcLine()}
+    else if(t.classList.contains('chip')){fGroup=t.getAttribute('data-g');render()}
+    else if(t.classList.contains('stat')){var k={fp:'paid',fo:'over',fh:'half',fn:'none'}[t.id];fStatus=fStatus===k?'':k;render()}
+  });
+  document.addEventListener('input',function(e){if(e.target.id==='f_paid')calcLine()});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')closeSheet();if(e.key==='Enter'&&e.target.id&&e.target.id.indexOf('f_')===0){if(e.target.id==='f_total')saveTotal();else save()}});
+  $('#q').addEventListener('input',function(e){query=e.target.value;render()});
+
+  /* ---------- Копии и установка ---------- */
+  function download(name,text,mime){
+    var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:mime}));a.download=name;
+    document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},1500);
+  }
+  function today(){var d=new Date(),p=function(n){return String(n).padStart(2,'0')};return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())}
+  $('#exportJson').addEventListener('click',function(){
+    download('studenty_'+today()+'.json',JSON.stringify({app:'students',total:total,students:students}),'application/json');toast('Көчүрмө «Жүктөлүп алынгандар» папкасына сакталды');
+  });
+  $('#exportCsv').addEventListener('click',function(){
+    var q=function(v){return '"'+String(v==null?'':v).replace(/"/g,'""')+'"'};
+    var rows=['Аты-жөнү;Тобу;Төлөнгөн;Калган;Пайыз;Статус'];
+    students.slice().sort(function(a,b){return cmp(a.group||'',b.group||'')||cmp(a.name||'',b.name||'')}).forEach(function(s){
+      var p=paidOf(s);rows.push([s.name,s.group||'',Math.round(p),Math.round(total-p),Math.round(p/total*100)+'%',LABEL[tier(p)]].map(q).join(';'));
+    });
+    download('studenty_'+today()+'.csv','\ufeff'+rows.join('\r\n'),'text/csv;charset=utf-8');toast('Таблица «Жүктөлүп алынгандар» папкасына сакталды');
+  });
+  $('#importBtn').addEventListener('click',function(){$('#importFile').click()});
+  $('#importFile').addEventListener('change',function(e){
+    var f=e.target.files[0];e.target.value='';if(!f)return;
+    f.text().then(function(t){
+      var d=JSON.parse(t);
+      if(!d||!Array.isArray(d.students))throw new Error('bad');
+      if(!confirm('Азыркы тизме ('+students.length+') файлдагы маалымат ('+d.students.length+') менен алмаштырылсынбы?'))return;
+      store.replace(d.students,typeof d.total==='number'&&d.total>0?d.total:DEFAULT_TOTAL);
+      total=typeof d.total==='number'&&d.total>0?d.total:DEFAULT_TOTAL;toast('Көчүрмө жүктөлдү');
+    }).catch(function(){toast('Бул файл тизменин көчүрмөсүнө окшобойт')});
+  });
+  var deferred=null;
+  window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();deferred=e;$('#installBtn').classList.remove('hidden')});
+  window.addEventListener('appinstalled',function(){$('#installBtn').classList.add('hidden')});
+  $('#installBtn').addEventListener('click',function(){if(!deferred)return;deferred.prompt();deferred.userChoice.then(function(){deferred=null;$('#installBtn').classList.add('hidden')})});
+  if('serviceWorker' in navigator&&window.isSecureContext)navigator.serviceWorker.register('sw.js').catch(function(){});
+
+  /* ---------- Запуск ---------- */
+  async function start(){
+    store=localStore();
+    try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
+    store.subscribe(function(rows){students=rows;render()},function(t){total=typeof t==='number'&&t>0?t:DEFAULT_TOTAL;render()});
+    render();
+  }
+  render();start();
+})();
+</script>
+</body>
+</html>
